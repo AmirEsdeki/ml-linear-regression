@@ -14,6 +14,6 @@ df_test = df.sample(1000, random_state=42)
 df = df.drop(df_test.index)
 
 input_features_x = df.iloc[:,:-1].values
-output_targets_y = df.iloc[:,-1:].values
+output_targets_y = df.iloc[:,-1:].values.flatten() #.flatten to have a ndarray of shape (m,) instead of (m,1)
 
 
