@@ -21,7 +21,7 @@ class LinearRegression:
         """
         return cls(learning_rate=0.01, iterations=1000)
     
-    def __linear_predict(self, x: np.ndarray, w: np.ndarray, b:float) -> float | np.ndarray:
+    def __linear_predict(self, x: np.ndarray, w: np.ndarray, b:float) -> np.ndarray:
         """Compute the linear model prediction
 
         Args:
