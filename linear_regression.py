@@ -115,3 +115,57 @@ def compute_gradient_vectorized(x: np.ndarray, w: np.ndarray, b:float, y:np.ndar
     gradient_w = (1/m) * np.dot(np.transpose(x), errors)
     gradient_b = (1/m) * np.sum(errors)
     return (gradient_w, gradient_b)
+
+
+def gradient_descent(x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray, alpha: float, iterations: int) -> tuple[np.ndarray, float, np.ndarray]:
+    """Run gradient descent to minimize the MSE cost using a loop-based gradient.
+
+    Args:
+        x (np.ndarray): Input feature matrix of shape (m, n).
+        w (np.ndarray): Initial weight vector of shape (n,).
+        b (float): Initial bias term.
+        y (np.ndarray): Target values of shape (m,).
+        alpha (float): Learning rate.
+        iterations (int): Number of gradient descent steps.
+
+    Returns:
+        tuple[np.ndarray, float, np.ndarray]: Optimized w, optimized b, and cost history of shape (iterations,).
+    """
+    i = 0
+    cost_history = np.zeros(iterations)
+    new_w = w.copy()
+    new_b = b
+    while i < iterations:
+        gradient_w, gradient_b = compute_gradient(x, new_w, new_b, y)
+        new_w = new_w - alpha * gradient_w
+        new_b = new_b - alpha * gradient_b
+        cost_history[i] = compute_cost(x, new_w, new_b, y)
+        i += 1
+    return (new_w, new_b, cost_history)
+
+
+def gradient_descent_vectorized(x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray, alpha: float, iterations: int) -> tuple[np.ndarray, float, np.ndarray]:
+    """Run gradient descent to minimize the MSE cost using a vectorized gradient.
+
+    Args:
+        x (np.ndarray): Input feature matrix of shape (m, n).
+        w (np.ndarray): Initial weight vector of shape (n,).
+        b (float): Initial bias term.
+        y (np.ndarray): Target values of shape (m,).
+        alpha (float): Learning rate.
+        iterations (int): Number of gradient descent steps.
+
+    Returns:
+        tuple[np.ndarray, float, np.ndarray]: Optimized w, optimized b, and cost history of shape (iterations,).
+    """
+    i = 0
+    cost_history = np.zeros(iterations)
+    new_w = w.copy()
+    new_b = b
+    while i < iterations:
+        gradient_w, gradient_b = compute_gradient_vectorized(x, new_w, new_b, y)
+        new_w = new_w - alpha * gradient_w
+        new_b = new_b - alpha * gradient_b
+        cost_history[i] = compute_cost_vectorized(x, new_w, new_b, y)
+        i += 1
+    return (new_w, new_b, cost_history)
