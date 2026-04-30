@@ -51,3 +51,9 @@ def compute_cost_vectorized(x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray)
     cost = 1/(2 * m) * np.dot(errors, errors)
     return cost
     
+def compute_gradient_vectorized(x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    m,= x.shape[0]
+    errors = linear_predict(x, w, b) - y # ndarray of shape (m,) having error per each data record
+    gradient_w = (1/m) * np.dot(np.transpose(x), errors)
+    gradient_b = (1/m) * np.sum(errors)
+    return (gradient_w, gradient_b)
