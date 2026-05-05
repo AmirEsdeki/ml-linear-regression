@@ -1,4 +1,5 @@
 import numpy as np
+from utils import ProgressBar
 
 class LinearRegression:
     
@@ -11,6 +12,8 @@ class LinearRegression:
         """
         self.learning_rate = learning_rate
         self.iterations = iterations
+        self.w = None
+        self.b = 0
 
     @classmethod
     def default(cls):
@@ -54,6 +57,11 @@ class LinearRegression:
         """
         y = np.dot(x,w) + b
         return y
+    
+    def predict(self, x: np.ndarray) -> np.ndarray:
+        if self.w is None:
+            raise RuntimeError("Model is not trained yet. Run gradient_descent or gradient_descent_vectorized first.")
+        return np.dot(x, self.w) + self.b
 
     def __compute_cost(self, x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray) -> float:
         """Compute the mean squared error cost function.
@@ -151,12 +159,17 @@ class LinearRegression:
         cost_history = np.zeros(self.iterations)
         new_w = w.copy()
         new_b = b
+        progress = ProgressBar(self.iterations)
         while i < self.iterations:
             gradient_w, gradient_b = self.__compute_gradient(x, new_w, new_b, y)
             new_w = new_w - self.learning_rate * gradient_w
             new_b = new_b - self.learning_rate * gradient_b
             cost_history[i] = self.__compute_cost(x, new_w, new_b, y)
             i += 1
+            progress.update(i)
+        progress.finish()
+        self.w = new_w
+        self.b = new_b
         return (new_w, new_b, cost_history)
 
     def gradient_descent_vectorized(self, x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray) -> tuple[np.ndarray, float, np.ndarray]:
@@ -175,10 +188,15 @@ class LinearRegression:
         cost_history = np.zeros(self.iterations)
         new_w = w.copy()
         new_b = b
+        progress = ProgressBar(self.iterations)
         while i < self.iterations:
             gradient_w, gradient_b = self.__compute_gradient_vectorized(x, new_w, new_b, y)
             new_w = new_w - self.learning_rate * gradient_w
             new_b = new_b - self.learning_rate * gradient_b
             cost_history[i] = self.__compute_cost_vectorized(x, new_w, new_b, y)
             i += 1
+            progress.update(i)
+        progress.finish()
+        self.w = new_w
+        self.b = new_b
         return (new_w, new_b, cost_history)
