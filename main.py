@@ -12,22 +12,22 @@ print("Path to dataset files:", path)
 
 df_train = pd.read_csv(path + "/winequality-red.csv")
 # print(df_train.head(100))
-#take 100 of data for test reasons
+#take 1000 of data for test reasons
 df_test = df_train.sample(1000, random_state=42)
 df_train = df_train.drop(df_test.index)
 
 input_features_x = df_train.iloc[:,:-1].values
-output_targets_y = df_train.iloc[:,-1:].values.flatten() #.flatten to have a ndarray of shape (m,) instead of (m,1)
+output_targets_y = df_train.iloc[:,-1:].values.flatten() #flatten to have a ndarray of shape (m,) instead of (m,1)
 
 # fig, ax = plt.subplots()
 # ax.scatter(input_features_x[:, 11], output_targets_y[:], alpha=0.3, s=10)                                                                                                                          
 # plt.show()    
 
 
-scaler = FeatureScaler(input_features_x, np.ones(input_features_x.shape[1], dtype=int), ScalingMethod.Z_SCORE)
+scaler = FeatureScaler(x=input_features_x, feature_mask=np.ones(input_features_x.shape[1], dtype=int), method=ScalingMethod.Z_SCORE) #scaling all the inputs in case
 input_features_x_scaled = scaler.fit_transform()
 
-reg_model = LinearRegression(0.001, 100000)
+reg_model = LinearRegression(learning_rate=0.001, iterations=100000)
 
 n = input_features_x_scaled.shape[1]
 w_init = np.zeros(n)
@@ -50,7 +50,7 @@ test_x = df_test.iloc[:, :-1].values
 test_y = df_test.iloc[:, -1:].values.flatten()
 test_x_scaled = scaler.transform(test_x)
 
-samples = 10
+samples = 1000
 predictions = reg_model.predict(test_x_scaled[:samples])
 
 print(f"\n{'#':<6} {'Predicted':>12} {'Actual':>10}")
@@ -60,7 +60,7 @@ for i, (pred, actual) in enumerate(zip(predictions, test_y[:samples])):
     rounded = round(pred)
     if rounded == int(actual):
         correct += 1
-    print(f"{i+1:<6} {rounded:>12} {actual:>10.0f}")
+    # print(f"{i+1:<6} {rounded:>12} {actual:>10.0f}")
 
-print(f"\nCorrect: {correct}/{samples} ({100 * correct // samples}%)")
+print(f"\nCorrect: {correct}/{samples} ({100 * correct // samples}%)") #first try: Correct: 560/1000 (56%)
 
