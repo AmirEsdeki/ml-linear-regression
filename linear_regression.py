@@ -3,7 +3,7 @@ from utils import ProgressBar
 
 class LinearRegression:
     
-    def __init__(self, learning_rate: float, iterations: int):
+    def __init__(self, learning_rate: float, iterations: int, regularization_lambda: float | None = 0) -> None:
         """Initialize the LinearRegression model.
 
         Args:
@@ -14,6 +14,7 @@ class LinearRegression:
         self.iterations = iterations
         self.w = None
         self.b = 0
+        self.regularization_lambda = 0 if regularization_lambda is None else regularization_lambda
 
     @classmethod
     def default(cls):
@@ -22,9 +23,10 @@ class LinearRegression:
         Returns:
             LinearRegression: A new instance with default settings.
         """
-        return cls(learning_rate=0.01, iterations=1000)
+        return cls(learning_rate=0.01, iterations=1000, regularization_lambda=0)
     
-    def __linear_predict(self, x: np.ndarray, w: np.ndarray, b:float) -> np.ndarray:
+    @staticmethod
+    def __linear_predict(x: np.ndarray, w: np.ndarray, b:float) -> np.ndarray:
         """Compute the linear model prediction
 
         Args:
@@ -44,7 +46,8 @@ class LinearRegression:
             y[i] = f_w_b
         return y
 
-    def __linear_predict_vectorized(self, x: np.ndarray, w: np.ndarray, b:float) -> float | np.ndarray:
+    @staticmethod
+    def __linear_predict_vectorized(x: np.ndarray, w: np.ndarray, b:float) -> float | np.ndarray:
         """Compute the linear model prediction in a vectorized way up to more than 100x faster on large datasets.
 
         Args:
@@ -75,12 +78,20 @@ class LinearRegression:
         Returns:
             float: MSE cost averaged over all m training examples.
         """
-        m = x.shape[0]
+        m,n = x.shape
         cost = 0.0
+        regularization = 0
         for i in range(m):
-            predict = self.__linear_predict(x[i:i+1], w, b)[0] 
+            predict = self.__linear_predict(x[i:i+1], w, b)[0]
             cost += (predict - y[i]) ** 2
-        return 1/(2 * m) * cost
+
+        if self.regularization_lambda != 0:
+            wj_sum = 0
+            for i in range(n):
+                wj_sum += w[i] ** 2
+            regularization = (self.regularization_lambda/(2 * m)) * wj_sum
+
+        return (1/(2 * m) * cost) + regularization
             
     def __compute_cost_vectorized(self, x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray) -> float:
         """Compute the mean squared error cost function in a vectorized way up to more than 100x faster on large datasets.
@@ -97,7 +108,9 @@ class LinearRegression:
         m = x.shape[0]
         errors = self.__linear_predict_vectorized(x, w, b) - y
         cost = 1/(2 * m) * np.dot(errors, errors)
-        return cost
+        regularization = (self.regularization_lambda/(2 * m)) * np.dot(w,w)
+
+        return cost + regularization
 
     def __compute_gradient(self, x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray) -> tuple[np.ndarray, float]:
         """Compute the gradients of the MSE cost with respect to w and b using a loop.
@@ -112,7 +125,7 @@ class LinearRegression:
             tuple[np.ndarray, float]: Gradient of w (shape (n,)) and gradient of b (scalar).
         """
         m,n= x.shape
-        errors = self.__linear_predict(x, w, b) - y # ndarray of shape (m,) having error per each data record
+        errors = self.__linear_predict(x, w, b) - y # ndarray of shape (m) having error per each data record
         d_d_w = np.zeros(n)
         d_d_b = 0
         for i in range(n):
@@ -121,9 +134,9 @@ class LinearRegression:
                 d_d_w[i] += x[j][i] * errors[j]
                 if i == 0:
                     d_d_b += errors[j]
-            d_d_w[i] = (1/m) * d_d_w[i]
+            d_d_w[i] = (1/m) * d_d_w[i] + (self.regularization_lambda/m) * w[i]
         d_d_b = (1/m) * d_d_b
-        return (d_d_w, d_d_b)  
+        return d_d_w, d_d_b
         
     def __compute_gradient_vectorized(self, x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray) -> tuple[np.ndarray, float]:
         """Compute the gradients of the MSE cost with respect to w and b in a vectorized way.
@@ -137,11 +150,11 @@ class LinearRegression:
         Returns:
             tuple[np.ndarray, float]: Gradient of w (shape (n,)) and gradient of b (scalar).
         """
-        m= x.shape[0]
-        errors = self.__linear_predict_vectorized(x, w, b) - y # ndarray of shape (m,) having error per each data record
-        gradient_w = (1/m) * np.dot(np.transpose(x), errors)
+        m = x.shape[0]
+        errors = self.__linear_predict_vectorized(x, w, b) - y # ndarray of shape (m) having error per each data record
+        gradient_w = (1/m) * np.dot(np.transpose(x), errors) + (self.regularization_lambda/m) * w
         gradient_b = (1/m) * np.sum(errors)
-        return (gradient_w, gradient_b)
+        return gradient_w, gradient_b
 
     def gradient_descent(self, x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray) -> tuple[np.ndarray, float, np.ndarray]:
         """Run gradient descent to minimize the MSE cost using a loop-based gradient.
@@ -170,7 +183,7 @@ class LinearRegression:
         progress.finish()
         self.w = new_w
         self.b = new_b
-        return (new_w, new_b, cost_history)
+        return new_w, new_b, cost_history
 
     def gradient_descent_vectorized(self, x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray) -> tuple[np.ndarray, float, np.ndarray]:
         """Run gradient descent to minimize the MSE cost using a vectorized gradient.
@@ -199,4 +212,4 @@ class LinearRegression:
         progress.finish()
         self.w = new_w
         self.b = new_b
-        return (new_w, new_b, cost_history)
+        return new_w, new_b, cost_history
