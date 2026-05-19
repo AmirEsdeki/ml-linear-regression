@@ -1,5 +1,6 @@
 import numpy as np
 from utils import ProgressBar
+import regression_predict_functions as rpf
 
 class LinearRegression:
     
@@ -25,42 +26,6 @@ class LinearRegression:
         """
         return cls(learning_rate=0.01, iterations=1000, regularization_lambda=0)
     
-    @staticmethod
-    def __linear_predict(x: np.ndarray, w: np.ndarray, b:float) -> np.ndarray:
-        """Compute the linear model prediction
-
-        Args:
-            x (np.ndarray): Input feature matrix of shape (m,n).
-            w (np.ndarray): Weight vector of shape (n,).
-            b (float): Bias term.
-
-        Returns:
-            float: Predicted value(s).
-        """
-        m,n = x.shape
-        y = np.zeros(m)
-        for i in range(m):
-            f_w_b = b
-            for j in range(n):
-                f_w_b += x[i][j] * w[j]
-            y[i] = f_w_b
-        return y
-
-    @staticmethod
-    def __linear_predict_vectorized(x: np.ndarray, w: np.ndarray, b:float) -> float | np.ndarray:
-        """Compute the linear model prediction in a vectorized way up to more than 100x faster on large datasets.
-
-        Args:
-            x (np.ndarray): Input feature matrix of shape (m,n).
-            w (np.ndarray): Weight vector of shape (n,).
-            b (float): Bias term.
-
-        Returns:
-            float: Predicted value(s).
-        """
-        y = np.dot(x,w) + b
-        return y
-    
     def predict(self, x: np.ndarray) -> np.ndarray:
         if self.w is None:
             raise RuntimeError("Model is not trained yet. Run gradient_descent or gradient_descent_vectorized first.")
@@ -82,7 +47,7 @@ class LinearRegression:
         cost = 0.0
         regularization = 0
         for i in range(m):
-            predict = self.__linear_predict(x[i:i+1], w, b)[0]
+            predict = rpf.linear_regression_predict(x[i:i + 1], w, b)[0]
             cost += (predict - y[i]) ** 2
 
         if self.regularization_lambda != 0:
@@ -106,7 +71,7 @@ class LinearRegression:
             float: MSE cost averaged over all m training examples.
         """
         m = x.shape[0]
-        errors = self.__linear_predict_vectorized(x, w, b) - y
+        errors = rpf.linear_regression_predict_vectorized(x, w, b) - y
         cost = 1/(2 * m) * np.dot(errors, errors)
         regularization = (self.regularization_lambda/(2 * m)) * np.dot(w,w)
 
@@ -125,7 +90,7 @@ class LinearRegression:
             tuple[np.ndarray, float]: Gradient of w (shape (n,)) and gradient of b (scalar).
         """
         m,n= x.shape
-        errors = self.__linear_predict(x, w, b) - y # ndarray of shape (m) having error per each data record
+        errors = rpf.linear_regression_predict(x, w, b) - y # ndarray of shape (m) having error per each data record
         d_d_w = np.zeros(n)
         d_d_b = 0
         for i in range(n):
@@ -151,7 +116,7 @@ class LinearRegression:
             tuple[np.ndarray, float]: Gradient of w (shape (n,)) and gradient of b (scalar).
         """
         m = x.shape[0]
-        errors = self.__linear_predict_vectorized(x, w, b) - y # ndarray of shape (m) having error per each data record
+        errors = rpf.linear_regression_predict_vectorized(x, w, b) - y # ndarray of shape (m) having error per each data record
         gradient_w = (1/m) * np.dot(np.transpose(x), errors) + (self.regularization_lambda/m) * w
         gradient_b = (1/m) * np.sum(errors)
         return gradient_w, gradient_b
