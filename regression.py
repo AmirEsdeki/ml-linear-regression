@@ -1,7 +1,7 @@
 import numpy as np
 from utils import ProgressBar
-import linear_regression_functions as linearrf
-import logistic_regression_functions as logisticrf
+import linear_regression_functions as linear_rf
+import logistic_regression_functions as logistic_rf
 from typing import Callable
 
 class Regression:
@@ -30,16 +30,47 @@ class Regression:
 
     @classmethod
     def linear(cls, learning_rate: float = 0.01, iterations: int = 1000, regularization_lambda: float | None = 0):
-        return cls(predict_function=linearrf.linear_regression_predict_vectorized, cost_function=linearrf.linear_regression_cost_function_vectorized,
+        """Create a Regression instance configured for linear regression.
+
+        Args:
+            learning_rate (float): Step size for gradient descent updates.
+            iterations (int): Number of gradient descent steps to run.
+            regularization_lambda (float | None): L2 regularization strength. Pass 0 or None to disable.
+
+        Returns:
+            Regression: Instance using MSE cost and linear predict functions.
+        """
+        return cls(predict_function=linear_rf.linear_regression_predict_vectorized, cost_function=linear_rf.linear_regression_cost_function_vectorized,
                    learning_rate=learning_rate, iterations=iterations, regularization_lambda=regularization_lambda)
 
     @classmethod
     def logistic(cls, learning_rate: float = 0.01, iterations: int = 1000, regularization_lambda: float | None = 0):
-        return cls(predict_function=logisticrf.logistic_regression_predict_vectorized,
-                   cost_function=logisticrf.logistic_regression_cost_function_vectorized,
+        """Create a Regression instance configured for logistic regression.
+
+        Args:
+            learning_rate (float): Step size for gradient descent updates.
+            iterations (int): Number of gradient descent steps to run.
+            regularization_lambda (float | None): L2 regularization strength. Pass 0 or None to disable.
+
+        Returns:
+            Regression: Instance using binary cross-entropy cost and sigmoid predict functions.
+        """
+        return cls(predict_function=logistic_rf.logistic_regression_predict_vectorized,
+                   cost_function=logistic_rf.logistic_regression_cost_function_vectorized,
                    learning_rate=learning_rate, iterations=iterations, regularization_lambda=regularization_lambda)
 
     def predict(self, x: np.ndarray) -> np.ndarray | float:
+        """Run prediction on input features using the trained model.
+
+        Args:
+            x (np.ndarray): Input feature matrix of shape (m, n).
+
+        Returns:
+            np.ndarray | float: Predicted values. For logistic regression these are probabilities in (0, 1).
+
+        Raises:
+            RuntimeError: If called before the model has been trained.
+        """
         if self.w is None:
             raise RuntimeError("Model is not trained yet. Run fit() first.")
         return self.predict_function(x, self.w, self.b)

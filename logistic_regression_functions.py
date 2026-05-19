@@ -1,7 +1,20 @@
 import numpy as np
 from typing import Callable
 
-def logistic_regression_predict_vectorized(x: np.ndarray, w: np.ndarray, b: float) -> float | np.ndarray:
+def logistic_regression_predict_vectorized(x: np.ndarray, w: np.ndarray, b: float) -> np.ndarray:
+    """Compute the logistic model prediction in a vectorized way.
+
+    Applies the sigmoid function to the linear combination of inputs,
+    mapping predictions to probabilities in (0, 1).
+
+    Args:
+        x (np.ndarray): Input feature matrix of shape (m, n).
+        w (np.ndarray): Weight vector of shape (n,).
+        b (float): Bias term.
+
+    Returns:
+        np.ndarray: Predicted probabilities of shape (m,), each value in (0, 1).
+    """
     f = np.dot(x, w) + b
     g = 1 / (1 + np.exp(-f))
     return g

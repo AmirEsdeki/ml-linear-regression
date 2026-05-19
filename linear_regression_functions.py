@@ -3,15 +3,15 @@ from typing import Callable
 
 #test non-vectorized to compare the performance
 def linear_regression_predict_non_vectorized(x: np.ndarray, w: np.ndarray, b: float) -> np.ndarray:
-    """Compute the linear model prediction
+    """Compute the linear model prediction using a loop.
 
     Args:
-        x (np.ndarray): Input feature matrix of shape (m,n).
+        x (np.ndarray): Input feature matrix of shape (m, n).
         w (np.ndarray): Weight vector of shape (n,).
         b (float): Bias term.
 
     Returns:
-        float: Predicted value(s).
+        np.ndarray: Predicted values of shape (m,).
     """
     m, n = x.shape
     y = np.zeros(m)
@@ -23,15 +23,15 @@ def linear_regression_predict_non_vectorized(x: np.ndarray, w: np.ndarray, b: fl
     return y
 
 def linear_regression_predict_vectorized(x: np.ndarray, w: np.ndarray, b: float) -> float | np.ndarray:
-    """Compute the linear model prediction in a vectorized way up to more than 100x faster on large datasets.
+    """Compute the linear model prediction in a vectorized way.
 
     Args:
-        x (np.ndarray): Input feature matrix of shape (m,n).
+        x (np.ndarray): Input feature matrix of shape (m, n).
         w (np.ndarray): Weight vector of shape (n,).
         b (float): Bias term.
 
     Returns:
-        float: Predicted value(s).
+        np.ndarray: Predicted values of shape (m,).
     """
     y = np.dot(x, w) + b
     return y
