@@ -10,7 +10,8 @@ class Regression:
                  cost_function: Callable[[float, np.ndarray,np.ndarray,float, np.ndarray],float | np.ndarray],
                  learning_rate: float,
                  iterations: int,
-                 regularization_lambda: float | None = 0) -> None:
+                 regularization_lambda: float | None = 0,
+                 tolerance: float = 0) -> None:
         """Initialize the Regression model.
 
         Args:
@@ -19,45 +20,50 @@ class Regression:
             learning_rate (float): Step size for gradient descent updates.
             iterations (int): Number of gradient descent steps to run.
             regularization_lambda (float | None): L2 regularization strength. Pass 0 or None to disable.
+            tolerance (float): Early stopping threshold. Training stops when cost improvement stays
+                below this value for 10 consecutive iterations. Pass 0 to disable.
         """
         self.learning_rate = learning_rate
         self.iterations = iterations
         self.w = None
         self.b = 0
         self.regularization_lambda = 0 if regularization_lambda is None else regularization_lambda
+        self.tolerance = tolerance
         self.predict_function = predict_function
         self.cost_function = cost_function
 
     @classmethod
-    def linear(cls, learning_rate: float = 0.01, iterations: int = 1000, regularization_lambda: float | None = 0):
+    def linear(cls, learning_rate: float = 0.01, iterations: int = 1000, regularization_lambda: float | None = 0, tolerance: float = 0):
         """Create a Regression instance configured for linear regression.
 
         Args:
             learning_rate (float): Step size for gradient descent updates.
             iterations (int): Number of gradient descent steps to run.
             regularization_lambda (float | None): L2 regularization strength. Pass 0 or None to disable.
+            tolerance (float): Early stopping threshold. Pass 0 to disable.
 
         Returns:
             Regression: Instance using MSE cost and linear predict functions.
         """
         return cls(predict_function=linear_rf.linear_regression_predict_vectorized, cost_function=linear_rf.linear_regression_cost_function_vectorized,
-                   learning_rate=learning_rate, iterations=iterations, regularization_lambda=regularization_lambda)
+                   learning_rate=learning_rate, iterations=iterations, regularization_lambda=regularization_lambda, tolerance=tolerance)
 
     @classmethod
-    def logistic(cls, learning_rate: float = 0.01, iterations: int = 1000, regularization_lambda: float | None = 0):
+    def logistic(cls, learning_rate: float = 0.01, iterations: int = 1000, regularization_lambda: float | None = 0, tolerance: float = 0):
         """Create a Regression instance configured for logistic regression.
 
         Args:
             learning_rate (float): Step size for gradient descent updates.
             iterations (int): Number of gradient descent steps to run.
             regularization_lambda (float | None): L2 regularization strength. Pass 0 or None to disable.
+            tolerance (float): Early stopping threshold. Pass 0 to disable.
 
         Returns:
             Regression: Instance using binary cross-entropy cost and sigmoid predict functions.
         """
         return cls(predict_function=logistic_rf.logistic_regression_predict_vectorized,
                    cost_function=logistic_rf.logistic_regression_cost_function_vectorized,
-                   learning_rate=learning_rate, iterations=iterations, regularization_lambda=regularization_lambda)
+                   learning_rate=learning_rate, iterations=iterations, regularization_lambda=regularization_lambda, tolerance=tolerance)
 
     def predict(self, x: np.ndarray) -> np.ndarray | float:
         """Run prediction on input features using the trained model.
@@ -137,12 +143,21 @@ class Regression:
         cost_history = np.zeros(self.iterations)
         new_w = w.copy()
         new_b = b
+        prev_cost = float('inf')
+        steady_count = 0
         progress = ProgressBar(self.iterations)
         while i < self.iterations:
             gradient_w, gradient_b = self.__compute_gradient_non_vectorized(x, new_w, new_b, y)
             new_w = new_w - self.learning_rate * gradient_w
             new_b = new_b - self.learning_rate * gradient_b
-            cost_history[i] = self.cost_function(self.regularization_lambda, x, new_w, new_b, y)
+            cost = self.cost_function(self.regularization_lambda, x, new_w, new_b, y)
+            cost_history[i] = cost
+            if self.tolerance > 0:
+                steady_count = steady_count + 1 if abs(prev_cost - cost) < self.tolerance else 0
+                if steady_count >= 10:
+                    cost_history = cost_history[:i + 1]
+                    break
+            prev_cost = cost
             i += 1
             progress.update(i)
         progress.finish()
@@ -166,12 +181,21 @@ class Regression:
         cost_history = np.zeros(self.iterations)
         new_w = w.copy()
         new_b = b
+        prev_cost = float('inf')
+        steady_count = 0
         progress = ProgressBar(self.iterations)
         while i < self.iterations:
             gradient_w, gradient_b = self.__compute_gradient_vectorized(x, new_w, new_b, y)
             new_w = new_w - self.learning_rate * gradient_w
             new_b = new_b - self.learning_rate * gradient_b
-            cost_history[i] = self.cost_function(self.regularization_lambda, x, new_w, new_b, y)
+            cost = self.cost_function(self.regularization_lambda, x, new_w, new_b, y)
+            cost_history[i] = cost
+            if self.tolerance > 0:
+                steady_count = steady_count + 1 if abs(prev_cost - cost) < self.tolerance else 0
+                if steady_count >= 10:
+                    cost_history = cost_history[:i + 1]
+                    break
+            prev_cost = cost
             i += 1
             progress.update(i)
         progress.finish()
