@@ -65,6 +65,23 @@ class Regression:
                    cost_function=logistic_rf.logistic_regression_cost_function_vectorized,
                    learning_rate=learning_rate, iterations=iterations, regularization_lambda=regularization_lambda, tolerance=tolerance)
 
+    def fit(self, x: np.ndarray, y: np.ndarray, w_init: np.ndarray | None = None, b_init: float = 0.0) -> 'Regression':
+        """Train the model using gradient descent.
+
+        Args:
+            x (np.ndarray): Input feature matrix of shape (m, n). Should already be scaled/transformed.
+            y (np.ndarray): Target values of shape (m,).
+            w_init (np.ndarray | None): Initial weights of shape (n,). Defaults to zeros.
+            b_init (float): Initial bias. Defaults to 0.
+
+        Returns:
+            Regression: The trained instance, allowing method chaining.
+        """
+        if w_init is None:
+            w_init = np.zeros(x.shape[1])
+        self.gradient_descent(x, w_init, b_init, y)
+        return self
+
     def predict(self, x: np.ndarray) -> np.ndarray | float:
         """Run prediction on input features using the trained model.
 
@@ -163,6 +180,7 @@ class Regression:
         progress.finish()
         self.w = new_w
         self.b = new_b
+        self.cost_history = cost_history
         return new_w, new_b, cost_history
 
     def gradient_descent(self, x: np.ndarray, w: np.ndarray, b:float, y:np.ndarray) -> tuple[np.ndarray, float, np.ndarray]:
@@ -201,4 +219,5 @@ class Regression:
         progress.finish()
         self.w = new_w
         self.b = new_b
+        self.cost_history = cost_history
         return new_w, new_b, cost_history

@@ -3,69 +3,55 @@ import kagglehub
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from linear_regression import LinearRegression
+from regression import Regression
 from feature_scaler import FeatureScaler, ScalingMethod
 from polynomial_features import PolynomialFeatures
+from metrics import RegressionMetrics
 
-#Download a model from kaggle to start our ML work
+# Download dataset from kaggle
 path = kagglehub.dataset_download("uciml/red-wine-quality-cortez-et-al-2009")
 print("Path to dataset files:", path)
 
-df_train = pd.read_csv(path + "/winequality-red.csv")
-# print(df_train.head(100))
-#take 1000 of data for test reasons
-samples = 1000
-df_test = df_train.sample(samples, random_state=42)
-df_train = df_train.drop(df_test.index)
+df = pd.read_csv(path + "/winequality-red.csv")
+df_test = df.sample(frac=0.2, random_state=42)
+df_train = df.drop(df_test.index)
 
-input_features_x = df_train.iloc[:,:-1].values
-output_targets_y = df_train.iloc[:,-1:].values.flatten() #flatten to have a ndarray of shape (m) instead of (m,1)
+X_train = df_train.iloc[:, :-1].values
+y_train = df_train.iloc[:, -1].values
 
-# fig, ax = plt.subplots()
-# ax.scatter(input_features_x[:, 11], output_targets_y[:], alpha=0.3, s=10)
-# plt.show()
+X_test = df_test.iloc[:, :-1].values
+y_test = df_test.iloc[:, -1].values
 
+# Preprocessing
 poly = PolynomialFeatures(degree=5)
-input_features_x_poly = poly.transform(input_features_x)
+X_train_poly = poly.transform(X_train)
 
-scaler = FeatureScaler(x=input_features_x_poly, feature_mask=np.ones(input_features_x_poly.shape[1], dtype=int), method=ScalingMethod.Z_SCORE) #scaling all the inputs in case
-input_features_x_scaled = scaler.fit_transform()
+scaler = FeatureScaler(x=X_train_poly, feature_mask=np.ones(X_train_poly.shape[1], dtype=int), method=ScalingMethod.Z_SCORE)
+X_train_scaled = scaler.fit_transform()
 
-reg_model = LinearRegression(learning_rate=0.001, iterations=100000, regularization_lambda=50)
+X_test_scaled = scaler.transform(poly.transform(X_test))
 
-n = input_features_x_scaled.shape[1]
-print(f"Feature count after making polynomial expansion: {n}")
-w_init = np.zeros(n)
-b_init = 0.0
+print(f"Feature count after polynomial expansion: {X_train_scaled.shape[1]}")
 
-w, b, cost_history = reg_model.gradient_descent_vectorized(
-    input_features_x_scaled, w_init, b_init, output_targets_y
-)
+# Train
+model = Regression.linear(learning_rate=0.001, iterations=100000, regularization_lambda=100, tolerance=1e-7).fit(X_train_scaled, y_train)
 
-# fig, ax = plt.subplots()
-# ax.plot(range(len(cost_history)), cost_history)
-# ax.set_xlabel("Iteration")
-# ax.set_ylabel("Cost (MSE)")
-# ax.set_title("Gradient Descent Cost History")
-# plt.show()
+print(f"Final cost (MSE): {model.cost_history[-1]:.6f}")
 
-print("Cost (MSE)", cost_history[-1])
+# Evaluate
+predictions = model.predict(X_test_scaled)
+mae, rmse, r2 = RegressionMetrics.evaluate(predictions, y_test)
 
-test_x = df_test.iloc[:, :-1].values
-test_y = df_test.iloc[:, -1:].values.flatten()
-test_x_poly = poly.transform(test_x)
-test_x_scaled = scaler.transform(test_x_poly)
+print(f"\nMAE:  {mae:.4f}")
+print(f"RMSE: {rmse:.4f}")
+print(f"R²:   {r2:.4f}")
 
-predictions = reg_model.predict(test_x_scaled)
-
-# print(f"\n{'#':<6} {'Predicted':>12} {'Actual':>10}")
-# print("-" * 30)
-correct = 0
-for i, (pred, actual) in enumerate(zip(predictions, test_y)):
-    rounded = round(pred)
-    if rounded == int(actual):
-        correct += 1
-    # print(f"{i+1:<6} {rounded:>12} {actual:>10.0f}")
-
-print(f"\nCorrect: {correct}/{samples} ({100 * correct // samples}%)") #first try: Correct: 560/1000 (56%)
-
+# Plot predicted vs actual
+fig, ax = plt.subplots()
+ax.scatter(y_test, predictions, alpha=0.4, s=15)
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', linewidth=1.5, label='Perfect fit')
+ax.set_xlabel("Actual quality")
+ax.set_ylabel("Predicted quality")
+ax.set_title("Predicted vs Actual (Test Set)")
+ax.legend()
+plt.show()
